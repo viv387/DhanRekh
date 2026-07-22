@@ -13,5 +13,8 @@ export const authEnv = {
 	redisUrl: process.env.REDIS_URL ?? "",
 	kafkaBrokers: (process.env.KAFKA_BROKERS ?? "").split(",").map((broker) => broker.trim()).filter(Boolean),
 	kafkaClientId: process.env.KAFKA_CLIENT_ID ?? "money-ledger",
+	rateLimitWindowSeconds: toNumber(process.env.RATE_LIMIT_WINDOW_SECONDS, 60),
+	transferRateLimit: toNumber(process.env.TRANSFER_RATE_LIMIT, 5),
+	moneyMovementRateLimit: toNumber(process.env.MONEY_MOVEMENT_RATE_LIMIT, 30),
 };
 

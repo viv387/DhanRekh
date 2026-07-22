@@ -32,4 +32,22 @@ export const cacheService = {
 
 		await client.del(key);
 	},
+
+	async incrementValue(key: string) {
+		const client = await getRedisClient();
+		if (!client) {
+			return null;
+		}
+
+		return client.incr(key);
+	},
+
+	async setExpiry(key: string, ttlSeconds: number) {
+		const client = await getRedisClient();
+		if (!client) {
+			return;
+		}
+
+		await client.expire(key, ttlSeconds);
+	},
 };

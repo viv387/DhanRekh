@@ -1,4 +1,5 @@
 import { getAuthenticatedUser } from "@/backend/middleware/auth.middleware";
+import { enforceMoneyMovementRateLimit } from "@/backend/middleware/rateLimiter";
 import { transactionService } from "@/backend/services/transaction.service";
 import { HttpError } from "@/backend/utils/http-error";
 import {
@@ -33,6 +34,8 @@ export async function handleDeposit(request: Request) {
 			return jsonResponse(401, { error: "Unauthorized" });
 		}
 
+		await enforceMoneyMovementRateLimit(user.id, "deposit");
+
 		const body = await request.json();
 		const parsed = depositSchema.parse({
 			...body,
@@ -52,6 +55,8 @@ export async function handleWithdraw(request: Request) {
 			return jsonResponse(401, { error: "Unauthorized" });
 		}
 
+		await enforceMoneyMovementRateLimit(user.id, "withdraw");
+
 		const body = await request.json();
 		const parsed = withdrawSchema.parse({
 			...body,
@@ -70,6 +75,8 @@ export async function handleTransfer(request: Request) {
 		if (!user) {
 			return jsonResponse(401, { error: "Unauthorized" });
 		}
+
+		await enforceMoneyMovementRateLimit(user.id, "transfer");
 
 		const body = await request.json();
 		const parsed = transferSchema.parse({
