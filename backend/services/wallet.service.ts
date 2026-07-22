@@ -1,5 +1,6 @@
 import { prisma } from "@/backend/prisma/prisma";
 import { walletRepository } from "@/backend/repositories/wallet.repository";
+import { balanceCache } from "@/backend/redis/balance.cache";
 import { generateAccountNumber } from "@/backend/utils/accountGenerator";
 import { HttpError } from "@/backend/utils/http-error";
 
@@ -37,6 +38,29 @@ function normalizeWallet(wallet: {
 	};
 }
 
+async function withCachedBalance(wallet: {
+	id: string;
+	userId: string;
+	accountNumber: string;
+	balance: { toString: () => string };
+	currency: string;
+	status: string;
+	createdAt: Date;
+}) {
+	const cachedBalance = await balanceCache.get(wallet.id);
+	if (!cachedBalance) {
+		await balanceCache.set(wallet.id, wallet.balance.toString());
+		return normalizeWallet(wallet);
+	}
+
+	return normalizeWallet({
+		...wallet,
+		balance: {
+			toString: () => cachedBalance,
+		},
+	});
+}
+
 export const walletService = {
 	async getMyWallet(userId: string) {
 		const wallet = await walletRepository.findByUserId(userId);
@@ -45,7 +69,7 @@ export const walletService = {
 			throw new HttpError(404, "Wallet not found");
 		}
 
-		return normalizeWallet(wallet);
+		return withCachedBalance(wallet);
 	},
 
 	async createMyWallet(userId: string) {
@@ -57,6 +81,7 @@ export const walletService = {
 
 		const accountNumber = await createUniqueAccountNumber();
 		const wallet = await walletRepository.createForUser(userId, accountNumber);
+		await balanceCache.set(wallet.id, wallet.balance.toString());
 
 		return normalizeWallet(wallet);
 	},

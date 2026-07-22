@@ -10,5 +10,8 @@ export const authEnv = {
 	refreshTokenExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? "7d",
 	bcryptRounds: toNumber(process.env.BCRYPT_ROUNDS, 10),
 	isProduction: process.env.NODE_ENV === "production",
+	redisUrl: process.env.REDIS_URL ?? "",
+	kafkaBrokers: (process.env.KAFKA_BROKERS ?? "").split(",").map((broker) => broker.trim()).filter(Boolean),
+	kafkaClientId: process.env.KAFKA_CLIENT_ID ?? "money-ledger",
 };
 

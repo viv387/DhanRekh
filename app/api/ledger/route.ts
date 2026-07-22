@@ -1,3 +1,5 @@
-export async function GET() {
-  return Response.json({ message: "Ledger API placeholder" }, { status: 501 });
+import { handleLedgerList } from "@/backend/controllers/ledger.controller";
+
+export async function GET(request: Request) {
+	return handleLedgerList(request);
 }

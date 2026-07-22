@@ -6,6 +6,9 @@ export const walletRepository = {
 	findById(walletId: string) {
 		return prisma.wallet.findUnique({ where: { id: walletId } });
 	},
+	findByAccountNumber(accountNumber: string) {
+		return prisma.wallet.findUnique({ where: { accountNumber } });
+	},
 	createForUser(userId: string, accountNumber: string) {
 		return prisma.wallet.create({
 			data: {
