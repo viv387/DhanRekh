@@ -117,11 +117,23 @@ export default function TransactionsPage() {
   }
 
   useEffect(() => {
-    loadWallet();
+    let active = true;
+    if (active) {
+      loadWallet();
+    }
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
-    searchTransactions();
+    let active = true;
+    if (active) {
+      searchTransactions();
+    }
+    return () => {
+      active = false;
+    };
   }, [filterType, filterStatus, sortBy, sortOrder, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {

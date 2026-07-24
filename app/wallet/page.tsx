@@ -166,7 +166,13 @@ export default function WalletPage() {
   }
 
   useEffect(() => {
-    loadWallet();
+    let active = true;
+    if (active) {
+      loadWallet();
+    }
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (

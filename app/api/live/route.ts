@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
 	let dbStatus = "healthy";
 	let redisStatus = "healthy";
-	let kafkaStatus = authEnv.kafkaBrokers.length ? "configured" : "disabled";
+	const kafkaStatus = authEnv.kafkaBrokers.length ? "configured" : "disabled";
 	let isHealthy = true;
 
 	try {
