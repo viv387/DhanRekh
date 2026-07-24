@@ -16,5 +16,11 @@ export const authEnv = {
 	rateLimitWindowSeconds: toNumber(process.env.RATE_LIMIT_WINDOW_SECONDS, 60),
 	transferRateLimit: toNumber(process.env.TRANSFER_RATE_LIMIT, 5),
 	moneyMovementRateLimit: toNumber(process.env.MONEY_MOVEMENT_RATE_LIMIT, 30),
+	mailFrom: process.env.MAIL_FROM ?? "Money Ledger <no-reply@money-ledger.local>",
+	mailHost: process.env.SMTP_HOST ?? "",
+	mailPort: toNumber(process.env.SMTP_PORT, 587),
+	mailUser: process.env.SMTP_USER ?? "",
+	mailPassword: process.env.SMTP_PASSWORD ?? "",
+	mailSecure: process.env.SMTP_SECURE === "true",
 };
 

@@ -2,6 +2,61 @@
 
 High-throughput wallet and ledger system built with Next.js, Prisma, PostgreSQL, Redis-ready abstractions, and a ledger-first money movement flow.
 
+## Objective
+
+Transform the current wallet into a production-style backend emphasizing concurrency, performance, and scalability.
+
+## Phase 1 Hardening Goals
+
+### 1. ACID Transactions with Row-Level Locking
+
+Use PostgreSQL transactions with row-level locking so money movement stays consistent under concurrent requests.
+
+- Balance reads and writes happen inside a single database transaction.
+- Wallet rows are locked during deposit, withdraw, and transfer operations.
+- This prevents double spending and race conditions.
+
+### 2. Redis Balance Cache
+
+Cache wallet balances in Redis so reads can hit cache first and fall back to PostgreSQL on a miss.
+
+- Wallet balance reads prefer Redis.
+- The cache is refreshed after every successful deposit, withdraw, and transfer.
+- If Redis is unavailable, the app falls back to PostgreSQL instead of failing the money flow.
+
+### 3. Kafka Event Processing
+
+Publish a Kafka event after every successful transaction.
+
+- Events are emitted for deposits, withdrawals, and transfers.
+- Each event includes transaction metadata such as IDs, amount, wallet references, and timestamp.
+- These events are the foundation for asynchronous notifications, analytics, and audit processing.
+
+### 4. Background Workers
+
+Use Kafka consumers to process non-critical tasks asynchronously.
+
+- Notification work can be moved out of the request path.
+- Analytics aggregation can be done in the background.
+- Audit logging and future email services can be attached to the same event stream.
+
+### 5. Redis Rate Limiting
+
+Protect money-movement APIs with Redis-based rate limiting.
+
+- Transfer requests can be capped more tightly than general money movement traffic.
+- A user that exceeds the configured threshold gets an HTTP 429 response.
+- The limiter is Redis-backed and atomic.
+
+## Phase 1 Deliverables
+
+- Safe concurrent transfers
+- Redis caching for wallet balances
+- Kafka producer integration
+- Background worker skeletons
+- Redis rate limiting
+- Production-ready backend foundation
+
 ## What Has Been Built
 
 The project now contains the core pieces of a production-style digital wallet system:
@@ -10,6 +65,10 @@ The project now contains the core pieces of a production-style digital wallet sy
 - JWT-based session handling with access and refresh tokens
 - Wallet creation and wallet lookup for the authenticated user
 - Deposit, withdraw, and transfer flows with idempotency protection
+- ACID transaction handling with row-level locking on wallet updates
+- Redis balance caching for wallet reads and post-commit cache refreshes
+- Kafka event publishing after successful deposits, withdrawals, and transfers
+- Redis-backed rate limiting for money-movement APIs
 - Immutable ledger entries written alongside every money movement
 - Transaction history and ledger history endpoints
 - Analytics summary endpoint for dashboard data
@@ -134,6 +193,9 @@ The Prisma schema currently includes these tables and roles:
 - Idempotency keys prevent duplicate money movements on retries.
 - Auth tokens are stored as HTTP-only cookies instead of being exposed in client state.
 - The dashboard is read-only and driven by the analytics API, not by hardcoded values.
+- PostgreSQL is treated as the source of truth while Redis accelerates reads and limits abuse.
+- Kafka carries transaction events to downstream workers without slowing the request path.
+- The backend is structured so additional workers and processors can be attached later without changing the core API contract.
 
 ## Running The Project
 
@@ -159,6 +221,10 @@ The project currently has a working foundation for:
 - deposit / withdraw / transfer flows
 - immutable ledger logging
 - dashboard analytics
+- row-level locking for money movements
+- Redis balance caching
+- Kafka event publishing
+- Redis rate limiting
 - frontend pages for wallet, transactions, and dashboard
 
-Next natural expansions would be notifications, stronger audit reporting, Redis caching, Kafka workers, and production deployment hardening.
+Next natural expansions would be worker implementations for notifications, analytics rollups, and audit sinks; plus deployment hardening, monitoring, and queue observability.

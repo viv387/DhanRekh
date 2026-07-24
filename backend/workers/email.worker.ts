@@ -1,8 +1,8 @@
 import { createKafkaConsumer } from "@/backend/kafka/consumer";
-import { auditService } from "@/backend/services/audit.service";
+import { emailService } from "@/backend/services/email.service";
 
-export async function startAuditWorker() {
-	const consumer = await createKafkaConsumer("audit-worker");
+export async function startEmailWorker() {
+	const consumer = await createKafkaConsumer("email-worker");
 	if (!consumer) {
 		return null;
 	}
@@ -10,7 +10,7 @@ export async function startAuditWorker() {
 	await consumer.run({
 		eachMessage: async ({ message }) => {
 			const rawMessage = message.value?.toString() ?? "";
-			await auditService.recordFromEvent(rawMessage);
+			await emailService.handleKafkaEvent(rawMessage);
 		},
 	});
 
