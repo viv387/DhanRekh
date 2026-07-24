@@ -10,13 +10,13 @@ export type AuthTokenPayload = {
 
 export function signAccessToken(payload: AuthTokenPayload) {
 	return jwt.sign(payload, authEnv.accessTokenSecret, {
-		expiresIn: authEnv.accessTokenExpiresIn,
+		expiresIn: authEnv.accessTokenExpiresIn as any,
 	});
 }
 
 export function signRefreshToken(payload: AuthTokenPayload) {
 	return jwt.sign(payload, authEnv.refreshTokenSecret, {
-		expiresIn: authEnv.refreshTokenExpiresIn,
+		expiresIn: authEnv.refreshTokenExpiresIn as any,
 	});
 }
 

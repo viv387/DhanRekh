@@ -10,12 +10,11 @@ import type {
 	TransferInput,
 	WithdrawInput,
 } from "@/backend/validators/transfer.validator";
+import type { TransactionSearchInput } from "@/backend/validators/transaction.validator";
 
 type MoneyValue = string | number;
 
-type TransactionClient = typeof prisma extends {
-	$transaction<R>(fn: (client: infer Client) => Promise<R>, options?: unknown): Promise<R>;
-} ? Client : never;
+type TransactionClient = any;
 
 function toMoneyNumber(value: MoneyValue) {
 	return Number(Number(value).toFixed(2));
@@ -158,13 +157,13 @@ type WalletRow = {
 };
 
 async function lockWalletForUser(tx: TransactionClient, userId: string) {
-	const rows = await tx.$queryRawUnsafe<WalletRow[]>(
+	const rows = (await tx.$queryRawUnsafe(
 		`SELECT id, user_id AS "userId", account_number AS "accountNumber", balance, currency, status, created_at AS "createdAt"
 		 FROM "wallets"
 		 WHERE user_id = $1
 		 FOR UPDATE`,
 		userId,
-	);
+	)) as WalletRow[];
 
 	return rows[0] ?? null;
 }
@@ -174,7 +173,7 @@ async function lockWalletPair(
 	senderUserId: string,
 	receiverAccountNumber: string,
 ) {
-	const rows = await tx.$queryRawUnsafe<WalletRow[]>(
+	const rows = (await tx.$queryRawUnsafe(
 		`SELECT id, user_id AS "userId", account_number AS "accountNumber", balance, currency, status, created_at AS "createdAt"
 		 FROM "wallets"
 		 WHERE user_id = $1 OR account_number = $2
@@ -182,10 +181,10 @@ async function lockWalletPair(
 		 FOR UPDATE`,
 		senderUserId,
 		receiverAccountNumber,
-	);
+	)) as WalletRow[];
 
-	const senderWallet = rows.find((wallet) => wallet.userId === senderUserId) ?? null;
-	const receiverWallet = rows.find((wallet) => wallet.accountNumber === receiverAccountNumber) ?? null;
+	const senderWallet = rows.find((wallet: WalletRow) => wallet.userId === senderUserId) ?? null;
+	const receiverWallet = rows.find((wallet: WalletRow) => wallet.accountNumber === receiverAccountNumber) ?? null;
 
 	return { senderWallet, receiverWallet };
 }
@@ -473,10 +472,19 @@ export const transactionService = {
 		return transactions.map(normalizeTransactionWithWallets);
 	},
 
+	async searchTransactionsForUser(userId: string, params: TransactionSearchInput) {
+		const wallet = await getMyWalletOrThrow(userId);
+		const result = await transactionRepository.findWithFilters(wallet.id, params);
+		return {
+			transactions: result.transactions.map(normalizeTransactionWithWallets),
+			pagination: result.pagination,
+		};
+	},
+
 	async listLedgerForUser(userId: string) {
 		const wallet = await getMyWalletOrThrow(userId);
 		const ledgerEntries = await ledgerRepository.listForWallet(wallet.id);
-		return ledgerEntries.map((entry) => ({
+		return ledgerEntries.map((entry: any) => ({
 			id: entry.id,
 			transactionId: entry.transactionId,
 			walletId: entry.walletId,

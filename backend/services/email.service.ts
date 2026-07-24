@@ -25,7 +25,7 @@ type EmailEvent = {
 	receiverEmail?: string;
 };
 
-let cachedTransport: nodemailer.Transporter | null = null;
+let cachedTransport: any = null;
 
 function hasSmtpConfig() {
 	return Boolean(authEnv.mailHost && authEnv.mailUser && authEnv.mailPassword);

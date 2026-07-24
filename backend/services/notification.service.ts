@@ -107,7 +107,7 @@ export const notificationService = {
 		}
 
 		const notification = await notificationRepository.listForUser(userId);
-		const found = notification.find((item) => item.id === notificationId);
+		const found = notification.find((item: NotificationRow) => item.id === notificationId);
 		if (!found) {
 			throw new HttpError(404, "Notification not found");
 		}

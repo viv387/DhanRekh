@@ -62,12 +62,13 @@ function refreshExpiryDate() {
 
 	const amount = Number(match[1]);
 	const unit = match[2];
-	const multiplier = {
+	const multipliers: Record<string, number> = {
 		s: 1000,
 		m: 60 * 1000,
 		h: 60 * 60 * 1000,
 		d: 24 * 60 * 60 * 1000,
-	}[unit];
+	};
+	const multiplier = multipliers[unit] ?? (24 * 60 * 60 * 1000);
 
 	return new Date(Date.now() + amount * multiplier);
 }
@@ -95,7 +96,7 @@ export const authService = {
 		const passwordHash = await hashPassword(input.password);
 		const accountNumber = await createUniqueAccountNumber();
 
-		const result = await prisma.$transaction(async (tx) => {
+		const result = await prisma.$transaction(async (tx: any) => {
 			const user = await tx.user.create({
 				data: {
 					username: input.username,
@@ -218,7 +219,7 @@ export const authService = {
 		const newAccessToken = signAccessToken(accessTokenPayload);
 		const newRefreshToken = signRefreshToken(accessTokenPayload);
 
-		await prisma.$transaction(async (tx) => {
+		await prisma.$transaction(async (tx: any) => {
 			await tx.refreshToken.delete({ where: { refreshToken } });
 			await tx.refreshToken.create({
 				data: {

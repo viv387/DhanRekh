@@ -7,6 +7,7 @@ import {
 	transferSchema,
 	withdrawSchema,
 } from "@/backend/validators/transfer.validator";
+import { transactionSearchSchema } from "@/backend/validators/transaction.validator";
 
 function jsonResponse(status: number, body: unknown) {
 	return new Response(JSON.stringify(body), {
@@ -97,8 +98,17 @@ export async function handleTransactionsList(request: Request) {
 			return jsonResponse(401, { error: "Unauthorized" });
 		}
 
-		const transactions = await transactionService.listTransactionsForUser(user.id);
-		return jsonResponse(200, { transactions });
+		const { searchParams } = new URL(request.url);
+		const rawParams: Record<string, string> = {};
+		searchParams.forEach((value, key) => {
+			if (value.trim() !== "") {
+				rawParams[key] = value;
+			}
+		});
+
+		const parsedParams = transactionSearchSchema.parse(rawParams);
+		const result = await transactionService.searchTransactionsForUser(user.id, parsedParams);
+		return jsonResponse(200, result);
 	} catch (error) {
 		return mapError(error);
 	}

@@ -1,4 +1,3 @@
-export default function DashboardPage() {
 "use client";
 
 import { useEffect, useState } from "react";
@@ -52,6 +51,14 @@ type DashboardData = {
   recentLedgerEntries: LedgerEntry[];
 };
 
+type NotificationItem = {
+  id: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+};
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
@@ -59,7 +66,7 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function metricCard({
+function MetricCard({
   title,
   value,
   subtitle,
@@ -79,6 +86,9 @@ function metricCard({
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -87,20 +97,26 @@ export default function DashboardPage() {
 
     async function loadDashboard() {
       try {
-        const response = await fetch("/api/analytics", {
-          credentials: "include",
-        });
+        const [dashRes, notifRes] = await Promise.all([
+          fetch("/api/analytics", { credentials: "include" }),
+          fetch("/api/notifications", { credentials: "include" }),
+        ]);
 
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => null)) as
-            | { error?: string }
-            | null;
+        if (!dashRes.ok) {
+          const payload = (await dashRes.json().catch(() => null)) as { error?: string } | null;
           throw new Error(payload?.error ?? "Failed to load dashboard");
         }
 
-        const payload = (await response.json()) as DashboardData;
+        const dashPayload = (await dashRes.json()) as DashboardData;
+        let notifPayload: { notifications: NotificationItem[]; unreadCount: number } = { notifications: [], unreadCount: 0 };
+        if (notifRes.ok) {
+          notifPayload = (await notifRes.json()) as { notifications: NotificationItem[]; unreadCount: number };
+        }
+
         if (active) {
-          setData(payload);
+          setData(dashPayload);
+          setNotifications(notifPayload.notifications ?? []);
+          setUnreadCount(notifPayload.unreadCount ?? 0);
           setError(null);
         }
       } catch (loadError) {
@@ -115,11 +131,25 @@ export default function DashboardPage() {
     }
 
     loadDashboard();
-
     return () => {
       active = false;
     };
   }, []);
+
+  async function markAllNotificationsRead() {
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        credentials: "include",
+      });
+      if (res.ok) {
+        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+        setUnreadCount(0);
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#050816] text-white">
@@ -132,11 +162,21 @@ export default function DashboardPage() {
               High throughput wallet dashboard
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
-              Live account summary, transaction volume, and immutable ledger activity from the
-              authenticated analytics endpoint.
+              Live account summary, transaction volume, and immutable ledger activity.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3 text-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-cyan-200 transition hover:bg-cyan-400/20"
+            >
+              Notifications
+              {unreadCount > 0 && (
+                <span className="ml-2 rounded-full bg-rose-500 px-2 py-0.5 text-xs text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
             <a className="rounded-full border border-cyan-400/40 bg-cyan-400/10 px-4 py-2 text-cyan-100 transition hover:bg-cyan-400/20" href="/wallet">
               Wallet
             </a>
@@ -148,6 +188,44 @@ export default function DashboardPage() {
             </a>
           </div>
         </header>
+
+        {showNotifications && (
+          <section className="rounded-[2rem] border border-cyan-500/20 bg-slate-950/80 p-6 backdrop-blur-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">Notifications ({notifications.length})</h3>
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllNotificationsRead}
+                  className="text-xs text-cyan-400 hover:underline"
+                >
+                  Mark all as read
+                </button>
+              )}
+            </div>
+            <div className="mt-4 max-h-60 space-y-3 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <p className="text-sm text-slate-400">No notifications found.</p>
+              ) : (
+                notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    className={`rounded-xl border p-4 text-sm ${
+                      n.isRead
+                        ? "border-white/5 bg-white/5 text-slate-300"
+                        : "border-cyan-500/30 bg-cyan-950/30 text-white"
+                    }`}
+                  >
+                    <div className="flex justify-between">
+                      <p className="font-semibold">{n.title}</p>
+                      <span className="text-xs text-slate-400">{formatDate(n.createdAt)}</span>
+                    </div>
+                    <p className="mt-1 text-slate-300">{n.message}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        )}
 
         {loading ? (
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -163,26 +241,26 @@ export default function DashboardPage() {
         ) : data ? (
           <>
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {metricCard({
-                title: "Current balance",
-                value: `${data.wallet.currency} ${data.summary.currentBalance}`,
-                subtitle: `Wallet ${data.wallet.accountNumber}`,
-              })}
-              {metricCard({
-                title: "Transactions",
-                value: String(data.summary.transactionCount),
-                subtitle: `${data.summary.ledgerEntryCount} ledger entries recorded`,
-              })}
-              {metricCard({
-                title: "Inflow",
-                value: `${data.wallet.currency} ${data.summary.totalDeposited}`,
-                subtitle: `${data.summary.depositCount} deposits completed`,
-              })}
-              {metricCard({
-                title: "Outflow",
-                value: `${data.wallet.currency} ${data.summary.totalWithdrawn}`,
-                subtitle: `${data.summary.withdrawCount} withdrawals and ${data.summary.transferCount} transfers`,
-              })}
+              <MetricCard
+                title="Current balance"
+                value={`${data.wallet.currency} ${data.summary.currentBalance}`}
+                subtitle={`Wallet ${data.wallet.accountNumber}`}
+              />
+              <MetricCard
+                title="Transactions"
+                value={String(data.summary.transactionCount)}
+                subtitle={`${data.summary.ledgerEntryCount} ledger entries recorded`}
+              />
+              <MetricCard
+                title="Inflow"
+                value={`${data.wallet.currency} ${data.summary.totalDeposited}`}
+                subtitle={`${data.summary.depositCount} deposits completed`}
+              />
+              <MetricCard
+                title="Outflow"
+                value={`${data.wallet.currency} ${data.summary.totalWithdrawn}`}
+                subtitle={`${data.summary.withdrawCount} withdrawals and ${data.summary.transferCount} transfers`}
+              />
             </section>
 
             <section className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
@@ -255,5 +333,4 @@ export default function DashboardPage() {
       </div>
     </main>
   );
-}
 }

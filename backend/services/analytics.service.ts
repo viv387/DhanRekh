@@ -118,7 +118,7 @@ async function buildDashboardSummary(userId: string): Promise<DashboardSummary> 
 	]);
 
 	const totals = transactionTotals.reduce(
-		(accumulator, row) => {
+		(accumulator: { depositCount: number; withdrawCount: number; transferCount: number; totalDeposited: number; totalWithdrawn: number; totalTransferred: number }, row: any) => {
 			const amount = Number(row._sum.amount ?? 0);
 			if (row.transactionType === "DEPOSIT") {
 				accumulator.depositCount += row._count.transactionType;

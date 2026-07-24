@@ -16,6 +16,7 @@ enum TransactionType {
 	DEPOSIT
 	WITHDRAW
 	TRANSFER
+	CONVERSION
 }
 
 enum TransactionStatus {
@@ -30,56 +31,80 @@ enum LedgerEntryType {
 	CREDIT
 }
 
-model User {
-	id              String           @id @default(uuid()) @db.Uuid @map("user_id")
-	username        String           @unique
-	email           String           @unique
-	phone           String           @unique
-	passwordHash    String           @map("password_hash")
-	createdAt       DateTime         @default(now()) @map("created_at")
-	updatedAt       DateTime         @updatedAt @map("updated_at")
+enum OutboxStatus {
+	PENDING
+	PUBLISHED
+	FAILED
+	RETRYING
+}
 
-	wallet          Wallet?
-	idempotencyKeys IdempotencyKey[]
-	auditLogs       AuditLog[]
-	refreshTokens   RefreshToken[]
-	notifications   Notification[]
+enum ScheduledFrequency {
+	ONCE
+	DAILY
+	WEEKLY
+	MONTHLY
+}
+
+model User {
+	id                String             @id @default(uuid()) @db.Uuid @map("user_id")
+	username          String             @unique
+	email             String             @unique
+	phone             String             @unique
+	passwordHash      String             @map("password_hash")
+	isEmailVerified   Boolean            @default(false) @map("is_email_verified")
+	twoFactorEnabled  Boolean            @default(false) @map("two_factor_enabled")
+	twoFactorSecret   String?            @map("two_factor_secret")
+	createdAt         DateTime           @default(now()) @map("created_at")
+	updatedAt         DateTime           @updatedAt @map("updated_at")
+
+	wallet            Wallet?
+	idempotencyKeys   IdempotencyKey[]
+	auditLogs         AuditLog[]
+	refreshTokens     RefreshToken[]
+	notifications     Notification[]
+	conversions       CurrencyConversion[]
+	scheduledPayments ScheduledPayment[]
+	fraudAlerts       FraudAlert[]
+	passwordResets    PasswordResetToken[]
 
 	@@map("users")
 }
 
 model Wallet {
-	id              String           @id @default(uuid()) @db.Uuid @map("wallet_id")
-	userId          String           @unique @db.Uuid @map("user_id")
-	accountNumber   String           @unique @map("account_number")
-	balance         Decimal          @default(0) @db.Decimal(18, 2)
-	currency        String           @default("USD")
-	status          WalletStatus     @default(ACTIVE)
-	createdAt       DateTime         @default(now()) @map("created_at")
+	id                String             @id @default(uuid()) @db.Uuid @map("wallet_id")
+	userId            String             @unique @db.Uuid @map("user_id")
+	accountNumber     String             @unique @map("account_number")
+	balance           Decimal            @default(0) @db.Decimal(18, 2)
+	currency          String             @default("USD")
+	status            WalletStatus       @default(ACTIVE)
+	createdAt         DateTime           @default(now()) @map("created_at")
 
-	user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-	sentTransactions Transaction[]   @relation("SenderTransactions")
-	receivedTransactions Transaction[] @relation("ReceiverTransactions")
-	ledgerEntries   Ledger[]
+	user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+	sentTransactions  Transaction[]     @relation("SenderTransactions")
+	receivedTransactions Transaction[]   @relation("ReceiverTransactions")
+	ledgerEntries     Ledger[]
+	conversions       CurrencyConversion[]
+	scheduledPayments ScheduledPayment[]
 
 	@@map("wallets")
 	@@index([status])
 }
 
 model Transaction {
-	id              String             @id @default(uuid()) @db.Uuid @map("transaction_id")
-	senderWalletId  String?            @db.Uuid @map("sender_wallet_id")
-	receiverWalletId String?           @db.Uuid @map("receiver_wallet_id")
-	amount          Decimal            @db.Decimal(18, 2)
-	transactionType TransactionType    @map("transaction_type")
-	status          TransactionStatus  @default(PENDING)
-	description     String?
-	createdAt       DateTime           @default(now()) @map("created_at")
+	id               String             @id @default(uuid()) @db.Uuid @map("transaction_id")
+	senderWalletId   String?            @db.Uuid @map("sender_wallet_id")
+	receiverWalletId String?            @db.Uuid @map("receiver_wallet_id")
+	amount           Decimal            @db.Decimal(18, 2)
+	transactionType  TransactionType    @map("transaction_type")
+	status           TransactionStatus  @default(PENDING)
+	description      String?
+	createdAt        DateTime           @default(now()) @map("created_at")
 
-	senderWallet    Wallet?            @relation("SenderTransactions", fields: [senderWalletId], references: [id], onDelete: SetNull)
-	receiverWallet  Wallet?            @relation("ReceiverTransactions", fields: [receiverWalletId], references: [id], onDelete: SetNull)
-	ledgerEntries   Ledger[]
-	idempotencyKey  IdempotencyKey?
+	senderWallet     Wallet?            @relation("SenderTransactions", fields: [senderWalletId], references: [id], onDelete: SetNull)
+	receiverWallet   Wallet?            @relation("ReceiverTransactions", fields: [receiverWalletId], references: [id], onDelete: SetNull)
+	ledgerEntries    Ledger[]
+	idempotencyKey   IdempotencyKey?
+	fraudAlerts      FraudAlert[]
 
 	@@map("transactions")
 	@@index([senderWalletId])
@@ -89,46 +114,150 @@ model Transaction {
 }
 
 model Ledger {
-	id              String         @id @default(uuid()) @db.Uuid @map("ledger_id")
-	transactionId   String         @db.Uuid @map("transaction_id")
-	walletId        String         @db.Uuid @map("wallet_id")
+	id              String          @id @default(uuid()) @db.Uuid @map("ledger_id")
+	transactionId   String          @db.Uuid @map("transaction_id")
+	walletId        String          @db.Uuid @map("wallet_id")
 	entryType       LedgerEntryType @map("entry_type")
-	amount          Decimal        @db.Decimal(18, 2)
-	balanceBefore   Decimal        @db.Decimal(18, 2) @map("balance_before")
-	balanceAfter    Decimal        @db.Decimal(18, 2) @map("balance_after")
-	createdAt       DateTime       @default(now()) @map("created_at")
+	amount          Decimal         @db.Decimal(18, 2)
+	balanceBefore   Decimal         @db.Decimal(18, 2) @map("balance_before")
+	balanceAfter    Decimal         @db.Decimal(18, 2) @map("balance_after")
+	createdAt       DateTime        @default(now()) @map("created_at")
 
-	transaction     Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-	wallet          Wallet         @relation(fields: [walletId], references: [id], onDelete: Cascade)
+	transaction     Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+	wallet          Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
 	@@map("ledger")
 	@@index([transactionId])
 	@@index([walletId])
 }
 
-model IdempotencyKey {
-	id              String        @id @default(uuid()) @db.Uuid @map("key_id")
-	userId          String        @db.Uuid @map("user_id")
-	transactionId   String?       @unique @db.Uuid @map("transaction_id")
-	idempotencyKey  String        @unique @map("idempotency_key")
-	createdAt       DateTime      @default(now()) @map("created_at")
+model Outbox {
+	id            String       @id @default(uuid()) @db.Uuid @map("outbox_id")
+	aggregateType String       @map("aggregate_type")
+	aggregateId   String       @map("aggregate_id")
+	eventType     String       @map("event_type")
+	payload       String       @db.Text
+	status        OutboxStatus @default(PENDING)
+	retryCount    Int          @default(0) @map("retry_count")
+	createdAt     DateTime     @default(now()) @map("created_at")
+	processedAt   DateTime?    @map("processed_at")
 
-	user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-	transaction     Transaction?  @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+	@@map("outbox")
+	@@index([status])
+	@@index([createdAt])
+}
+
+model DeadLetterMessage {
+	id            String    @id @default(uuid()) @db.Uuid @map("dlq_id")
+	topic         String
+	consumerGroup String    @map("consumer_group")
+	payload       String    @db.Text
+	errorReason   String    @map("error_reason")
+	status        String    @default("FAILED")
+	createdAt     DateTime  @default(now()) @map("created_at")
+	replayedAt    DateTime? @map("replayed_at")
+
+	@@map("dead_letter_messages")
+	@@index([status])
+	@@index([createdAt])
+}
+
+model CurrencyConversion {
+	id           String   @id @default(uuid()) @db.Uuid @map("conversion_id")
+	userId       String   @db.Uuid @map("user_id")
+	walletId     String   @db.Uuid @map("wallet_id")
+	fromCurrency String   @map("from_currency")
+	toCurrency   String   @map("to_currency")
+	fromAmount   Decimal  @db.Decimal(18, 2) @map("from_amount")
+	toAmount     Decimal  @db.Decimal(18, 2) @map("to_amount")
+	rate         Decimal  @db.Decimal(18, 6)
+	createdAt    DateTime @default(now()) @map("created_at")
+
+	user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+	wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+	@@map("currency_conversions")
+	@@index([userId])
+	@@index([walletId])
+}
+
+model ScheduledPayment {
+	id                    String             @id @default(uuid()) @db.Uuid @map("scheduled_id")
+	userId                String             @db.Uuid @map("user_id")
+	senderWalletId        String             @db.Uuid @map("sender_wallet_id")
+	receiverAccountNumber String             @map("receiver_account_number")
+	amount                Decimal            @db.Decimal(18, 2)
+	currency              String             @default("USD")
+	frequency             ScheduledFrequency @default(ONCE)
+	nextRunAt             DateTime           @map("next_run_at")
+	status                String             @default("ACTIVE")
+	createdAt             DateTime           @default(now()) @map("created_at")
+
+	user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+	senderWallet          Wallet             @relation(fields: [senderWalletId], references: [id], onDelete: Cascade)
+
+	@@map("scheduled_payments")
+	@@index([userId])
+	@@index([nextRunAt])
+	@@index([status])
+}
+
+model FraudAlert {
+	id              String       @id @default(uuid()) @db.Uuid @map("alert_id")
+	userId          String       @db.Uuid @map("user_id")
+	transactionId   String?      @db.Uuid @map("transaction_id")
+	riskScore       Int          @map("risk_score")
+	confidenceScore Int          @default(90) @map("confidence_score")
+	reasons         String       @db.Text
+	status          String       @default("FLAGGED")
+	createdAt       DateTime     @default(now()) @map("created_at")
+
+	user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+	transaction     Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+	@@map("fraud_alerts")
+	@@index([userId])
+	@@index([riskScore])
+	@@index([status])
+}
+
+model PasswordResetToken {
+	id        String   @id @default(uuid()) @db.Uuid @map("reset_id")
+	userId    String   @db.Uuid @map("user_id")
+	token     String   @unique
+	expiresAt DateTime @map("expires_at")
+	createdAt DateTime @default(now()) @map("created_at")
+
+	user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+	@@map("password_reset_tokens")
+	@@index([userId])
+	@@index([token])
+}
+
+model IdempotencyKey {
+	id              String       @id @default(uuid()) @db.Uuid @map("key_id")
+	userId          String       @db.Uuid @map("user_id")
+	transactionId   String?      @unique @db.Uuid @map("transaction_id")
+	idempotencyKey  String       @unique @map("idempotency_key")
+	createdAt       DateTime     @default(now()) @map("created_at")
+
+	user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+	transaction     Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
 
 	@@map("idempotency_keys")
 	@@index([userId])
 }
 
 model AuditLog {
-	id              String        @id @default(uuid()) @db.Uuid @map("audit_id")
-	userId          String        @db.Uuid @map("user_id")
-	action          String
-	ipAddress       String?       @map("ip_address")
-	userAgent       String?       @map("user_agent")
-	createdAt       DateTime      @default(now()) @map("created_at")
+	id        String   @id @default(uuid()) @db.Uuid @map("audit_id")
+	userId    String   @db.Uuid @map("user_id")
+	action    String
+	ipAddress String?  @map("ip_address")
+	userAgent String?  @map("user_agent")
+	createdAt DateTime @default(now()) @map("created_at")
 
-	user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+	user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
 	@@map("audit_logs")
 	@@index([userId])
@@ -136,13 +265,13 @@ model AuditLog {
 }
 
 model RefreshToken {
-	id              String        @id @default(uuid()) @db.Uuid @map("token_id")
-	userId          String        @db.Uuid @map("user_id")
-	refreshToken    String        @unique @map("refresh_token")
-	expiresAt       DateTime      @map("expires_at")
-	createdAt       DateTime      @default(now()) @map("created_at")
+	id           String   @id @default(uuid()) @db.Uuid @map("token_id")
+	userId       String   @db.Uuid @map("user_id")
+	refreshToken String   @unique @map("refresh_token")
+	expiresAt    DateTime @map("expires_at")
+	createdAt    DateTime @default(now()) @map("created_at")
 
-	user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+	user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
 	@@map("refresh_tokens")
 	@@index([userId])
@@ -150,14 +279,14 @@ model RefreshToken {
 }
 
 model Notification {
-	id              String        @id @default(uuid()) @db.Uuid @map("notification_id")
-	userId          String        @db.Uuid @map("user_id")
-	title           String
-	message         String
-	isRead          Boolean       @default(false) @map("is_read")
-	createdAt       DateTime      @default(now()) @map("created_at")
+	id        String   @id @default(uuid()) @db.Uuid @map("notification_id")
+	userId    String   @db.Uuid @map("user_id")
+	title     String
+	message   String
+	isRead    Boolean  @default(false) @map("is_read")
+	createdAt DateTime @default(now()) @map("created_at")
 
-	user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+	user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
 	@@map("notifications")
 	@@index([userId])
