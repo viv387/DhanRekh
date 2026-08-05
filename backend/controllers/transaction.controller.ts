@@ -1,7 +1,7 @@
 import { getAuthenticatedUser } from "@/backend/middleware/auth.middleware";
 import { enforceMoneyMovementRateLimit } from "@/backend/middleware/rateLimiter";
 import { transactionService } from "@/backend/services/transaction.service";
-import { HttpError } from "@/backend/utils/http-error";
+import { jsonResponse, mapError } from "@/backend/controllers/shared";
 import {
 	depositSchema,
 	transferSchema,
@@ -9,20 +9,6 @@ import {
 } from "@/backend/validators/transfer.validator";
 import { transactionSearchSchema } from "@/backend/validators/transaction.validator";
 
-function jsonResponse(status: number, body: unknown) {
-	return new Response(JSON.stringify(body), {
-		status,
-		headers: { "Content-Type": "application/json" },
-	});
-}
-
-function mapError(error: unknown) {
-	if (error instanceof HttpError) {
-		return jsonResponse(error.status, { error: error.message });
-	}
-
-	return jsonResponse(500, { error: "Internal server error" });
-}
 
 function getIdempotencyKey(request: Request, bodyKey: string | undefined) {
 	return request.headers.get("idempotency-key") ?? bodyKey ?? "";

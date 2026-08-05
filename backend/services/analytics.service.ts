@@ -102,8 +102,9 @@ async function buildDashboardSummary(userId: string): Promise<DashboardSummary> 
 	}
 
 	const [transactions, ledgerEntries, transactionTotals, ledgerCount] = await Promise.all([
-		transactionRepository.listForWallet(wallet.id),
-		ledgerRepository.listForWallet(wallet.id),
+		// ✅ Fixed: Use DB-level LIMIT instead of loading all records and slicing in memory
+		transactionRepository.listForWallet(wallet.id, { take: 5, orderBy: { createdAt: "desc" } }),
+		ledgerRepository.listForWallet(wallet.id, { take: 10, orderBy: { createdAt: "desc" } }),
 		prisma.transaction.groupBy({
 			by: ["transactionType"],
 			where: {
@@ -157,13 +158,14 @@ async function buildDashboardSummary(userId: string): Promise<DashboardSummary> 
 			totalWithdrawn: totals.totalWithdrawn.toFixed(2),
 			totalTransferred: totals.totalTransferred.toFixed(2),
 		},
-		recentTransactions: transactions.slice(0, 5).map(normalizeTransaction),
-		recentLedgerEntries: ledgerEntries.slice(0, 10).map(normalizeLedgerEntry),
+		recentTransactions: transactions.map(normalizeTransaction),
+		recentLedgerEntries: ledgerEntries.map(normalizeLedgerEntry),
 	};
 }
 
 async function cacheDashboardSummary(userId: string, summary: DashboardSummary) {
-	await cacheService.setValue(analyticsKey(userId), JSON.stringify(summary));
+	// ✅ Fixed: Added 5-minute TTL so stale data never persists forever
+	await cacheService.setValue(analyticsKey(userId), JSON.stringify(summary), 300);
 }
 
 export const analyticsService = {

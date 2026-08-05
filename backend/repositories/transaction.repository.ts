@@ -16,7 +16,7 @@ export const transactionRepository = {
 		});
 	},
 
-	listForWallet(walletId: string) {
+	listForWallet(walletId: string, options?: { take?: number; orderBy?: { createdAt: "asc" | "desc" } }) {
 		return prisma.transaction.findMany({
 			where: {
 				OR: [{ senderWalletId: walletId }, { receiverWalletId: walletId }],
@@ -26,7 +26,8 @@ export const transactionRepository = {
 				receiverWallet: true,
 				ledgerEntries: true,
 			},
-			orderBy: { createdAt: "desc" },
+			orderBy: options?.orderBy ?? { createdAt: "desc" },
+			...(options?.take ? { take: options.take } : {}),
 		});
 	},
 

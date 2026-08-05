@@ -1,43 +1,20 @@
-import * as PrismaClientModule from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const PrismaClientConstructor: any =
-	(PrismaClientModule as unknown as {
-		PrismaClient?: new (...args: any[]) => any;
-		default?: {
-			PrismaClient?: new (...args: any[]) => any;
-		};
-	}).PrismaClient ??
-	(
-		PrismaClientModule as unknown as {
-			default?: { PrismaClient?: new (...args: any[]) => any };
-		}
-	).default?.PrismaClient;
+const connectionString = process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/money_ledger?schema=public";
+const adapter = new PrismaPg({ connectionString });
 
 const globalForPrisma = globalThis as unknown as {
-	prisma?: any;
+	prisma?: PrismaClient;
 };
 
-function getPrismaInstance() {
-	if (!globalForPrisma.prisma && PrismaClientConstructor) {
-		try {
-			globalForPrisma.prisma = new PrismaClientConstructor();
-		} catch {
-			globalForPrisma.prisma = null;
-		}
-	}
-	return globalForPrisma.prisma;
-}
+export const prisma =
+	globalForPrisma.prisma ??
+	new PrismaClient({
+		adapter,
+		log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+	});
 
-export const prisma: any = new Proxy({} as any, {
-	get(_target, prop) {
-		const instance = getPrismaInstance();
-		if (!instance) {
-			return () => Promise.resolve(null);
-		}
-		const value = instance[prop];
-		if (typeof value === "function") {
-			return value.bind(instance);
-		}
-		return value;
-	},
-});
+if (process.env.NODE_ENV !== "production") {
+	globalForPrisma.prisma = prisma;
+}

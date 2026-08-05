@@ -17,7 +17,13 @@ export async function getRedisClient() {
 	if (!connectPromise) {
 		connectPromise = (async () => {
 			if (!redisClient) {
-				redisClient = createClient({ url: authEnv.redisUrl });
+				redisClient = createClient({
+					url: authEnv.redisUrl,
+					socket: {
+						connectTimeoutMs: 2000,   // Fail fast: 2 seconds max
+						reconnectStrategy: false,  // Don't auto-reconnect on failure
+					},
+				});
 				redisClient.on("error", () => {
 					// Connection errors are handled by falling back to PostgreSQL.
 				});

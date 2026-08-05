@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { startAnalyticsWorker } from "./analytics.worker";
 import { startAuditWorker } from "./audit.worker";
 import { startEmailWorker } from "./email.worker";

@@ -158,7 +158,7 @@ type WalletRow = {
 
 async function lockWalletForUser(tx: TransactionClient, userId: string) {
 	const rows = (await tx.$queryRawUnsafe(
-		`SELECT id, user_id AS "userId", account_number AS "accountNumber", balance, currency, status, created_at AS "createdAt"
+		`SELECT wallet_id AS "id", user_id AS "userId", account_number AS "accountNumber", balance, currency, status, created_at AS "createdAt"
 		 FROM "wallets"
 		 WHERE user_id = $1
 		 FOR UPDATE`,
@@ -174,10 +174,10 @@ async function lockWalletPair(
 	receiverAccountNumber: string,
 ) {
 	const rows = (await tx.$queryRawUnsafe(
-		`SELECT id, user_id AS "userId", account_number AS "accountNumber", balance, currency, status, created_at AS "createdAt"
+		`SELECT wallet_id AS "id", user_id AS "userId", account_number AS "accountNumber", balance, currency, status, created_at AS "createdAt"
 		 FROM "wallets"
 		 WHERE user_id = $1 OR account_number = $2
-		 ORDER BY id ASC
+		 ORDER BY wallet_id ASC
 		 FOR UPDATE`,
 		senderUserId,
 		receiverAccountNumber,

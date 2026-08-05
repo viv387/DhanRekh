@@ -5,6 +5,7 @@ import { userRepository } from "@/backend/repositories/user.repository";
 import { authEnv } from "@/backend/config/env";
 import { comparePassword, hashPassword } from "@/backend/utils/bcrypt";
 import { generateAccountNumber } from "@/backend/utils/accountGenerator";
+import { otpService } from "@/backend/services/otp.service";
 import {
 	signAccessToken,
 	signRefreshToken,
@@ -162,6 +163,22 @@ export const authService = {
 		const passwordValid = await comparePassword(input.password, user.passwordHash);
 		if (!passwordValid) {
 			throw new HttpError(401, "Invalid credentials");
+		}
+
+		// ✅ 2FA enforcement — if enabled, require a valid OTP token
+		if (user.twoFactorEnabled && user.twoFactorSecret) {
+			if (!input.otpToken) {
+				// Tell the frontend to show the OTP input screen
+				throw new HttpError(401, JSON.stringify({
+					requiresOtp: true,
+					message: "Two-factor authentication required. Please enter your 6-digit OTP code.",
+				}));
+			}
+
+			const otpValid = otpService.verifyCode(user.twoFactorSecret, input.otpToken);
+			if (!otpValid) {
+				throw new HttpError(401, "Invalid or expired OTP code.");
+			}
 		}
 
 		const accessTokenPayload = {

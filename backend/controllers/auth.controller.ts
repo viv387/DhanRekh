@@ -1,29 +1,12 @@
 import { authService } from "@/backend/services/auth.service";
 import { clearAuthCookieHeaders, buildAuthCookieHeaders } from "@/backend/utils/cookies";
-import { HttpError } from "@/backend/utils/http-error";
+import { jsonResponse, mapError } from "@/backend/controllers/shared";
 import {
 	loginSchema,
 	signupSchema,
 	tokenSchema,
 } from "@/backend/validators/auth.validator";
 
-function jsonResponse(status: number, body: unknown, cookies: string[] = []) {
-	const headers = new Headers({ "Content-Type": "application/json" });
-
-	for (const cookie of cookies) {
-		headers.append("Set-Cookie", cookie);
-	}
-
-	return new Response(JSON.stringify(body), { status, headers });
-}
-
-function mapError(error: unknown) {
-	if (error instanceof HttpError) {
-		return jsonResponse(error.status, { error: error.message });
-	}
-
-	return jsonResponse(500, { error: "Internal server error" });
-}
 
 export async function handleSignup(request: Request) {
 	try {

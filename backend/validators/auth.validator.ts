@@ -10,6 +10,8 @@ export const signupSchema = z.object({
 export const loginSchema = z.object({
 	identifier: z.string().min(3),
 	password: z.string().min(8).max(128),
+	// Optional 6-digit OTP for 2FA-enabled accounts
+	otpToken: z.string().length(6).optional(),
 });
 
 export const tokenSchema = z.object({
