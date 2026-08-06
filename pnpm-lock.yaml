@@ -55,7 +55,7 @@ importers:
         specifier: ^9.0.10
         version: 9.0.10
       '@types/node':
-        specifier: ^20
+        specifier: '20'
         version: 20.19.43
       '@types/pg':
         specifier: ^8.11.11
