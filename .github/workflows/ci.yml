@@ -72,6 +72,12 @@ jobs:
         run: pnpm exec tsc --noEmit
         working-directory: ${{ env.APP_DIR }}
 
+      - name: Push Database Schema to Test Database
+        run: pnpm exec prisma db push
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/money_ledger_test?schema=public
+
       - name: Run Unit & Integration Test Suites
         run: pnpm test
         working-directory: ${{ env.APP_DIR }}
