@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 		}
 
 		// Verify the token against the stored secret
-		const isValid = otpService.verifyToken(dbUser.twoFactorSecret, token);
+		const isValid = otpService.verifyCode(dbUser.twoFactorSecret, token);
 
 		if (!isValid) {
 			return Response.json(

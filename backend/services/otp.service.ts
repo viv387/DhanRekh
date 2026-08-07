@@ -19,4 +19,11 @@ export const otpService = {
 		if (!expectedCode || !userCode) return false;
 		return expectedCode.trim() === userCode.trim();
 	},
+
+	/**
+	 * Alias for verifyCode
+	 */
+	verifyToken(expectedCode: string, userCode: string): boolean {
+		return this.verifyCode(expectedCode, userCode);
+	},
 };

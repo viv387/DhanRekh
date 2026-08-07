@@ -20,7 +20,7 @@ export async function getRedisClient() {
 				redisClient = createClient({
 					url: authEnv.redisUrl,
 					socket: {
-						connectTimeoutMs: 2000,   // Fail fast: 2 seconds max
+						connectTimeout: 2000,     // Fail fast: 2 seconds max
 						reconnectStrategy: false,  // Don't auto-reconnect on failure
 					},
 				});
