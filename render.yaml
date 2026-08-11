@@ -20,6 +20,7 @@ services:
     plan: free          # free | starter | standard
     region: oregon
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: []     # Only internal Render services can connect
 
   # --- Next.js Web Application ---
   - type: web
