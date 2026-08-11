@@ -89,12 +89,12 @@ services:
       - key: SMTP_PORT
         value: "587"
 
-  # --- Background Worker Service ---
+  # --- Background Worker Service (requires paid plan) ---
   - type: worker
     name: money-ledger-workers
     runtime: node
     region: oregon
-    plan: free
+    plan: starter       # worker requires starter or above
     branch: main
 
     buildCommand: pnpm install --frozen-lockfile && npx prisma generate
