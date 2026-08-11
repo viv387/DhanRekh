@@ -1,3 +1,4 @@
+import path from "path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -13,6 +14,11 @@ const nextConfig: NextConfig = {
   // Compress responses
   compress: true,
 
+  // Fix Turbopack root directory inference in monorepo/workspace
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
+
   // Strict TypeScript during build
   typescript: {
     ignoreBuildErrors: false,
@@ -20,3 +26,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+

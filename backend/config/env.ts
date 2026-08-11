@@ -3,9 +3,18 @@ const toNumber = (value: string | undefined, fallback: number) => {
 	return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+function requireEnv(key: string, fallback: string): string {
+	const value = process.env[key];
+	if (value) return value;
+	if (process.env.NODE_ENV === "production") {
+		throw new Error(`Missing required environment variable: ${key}`);
+	}
+	return fallback;
+}
+
 export const authEnv = {
-	accessTokenSecret: process.env.JWT_ACCESS_SECRET ?? "dev-access-secret",
-	refreshTokenSecret: process.env.JWT_REFRESH_SECRET ?? "dev-refresh-secret",
+	accessTokenSecret: requireEnv("JWT_ACCESS_SECRET", "dev-access-secret"),
+	refreshTokenSecret: requireEnv("JWT_REFRESH_SECRET", "dev-refresh-secret"),
 	accessTokenExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? "15m",
 	refreshTokenExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? "7d",
 	bcryptRounds: toNumber(process.env.BCRYPT_ROUNDS, 10),
@@ -23,4 +32,5 @@ export const authEnv = {
 	mailPassword: process.env.SMTP_PASSWORD ?? "",
 	mailSecure: process.env.SMTP_SECURE === "true",
 };
+
 

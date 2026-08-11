@@ -51,7 +51,7 @@ export default function LoginPage() {
                 <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-2xl font-bold text-transparent">₹</span>
               </div>
             </div>
-            <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">Money Ledger Auth</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">DhanRekh Auth</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">Sign In to Wallet</h1>
             <p className="mt-2 text-sm text-slate-400">Enter your email, username, or phone</p>
           </div>

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node .next/standalone/my-app/server.js",
     "workers": "npx tsx backend/workers/index.ts",
     "db:migrate": "npx prisma migrate deploy",
     "db:push": "npx prisma db push",

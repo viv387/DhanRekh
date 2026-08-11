@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Money Ledger | Digital Wallet & Immutable Ledger",
+  title: "DhanRekh | High-Throughput Digital Wallet & Immutable Ledger",
   description:
-    "High-throughput, event-driven digital wallet with ACID transactions, double-entry ledger accounting, real-time analytics, and enterprise fault tolerance.",
+    "DhanRekh is a high-throughput, event-driven digital wallet with ACID transactions, double-entry ledger accounting, real-time analytics, and enterprise fault tolerance.",
 };
 
 export default function RootLayout({
@@ -28,6 +28,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">

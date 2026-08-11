@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "npx prisma generate && npm run build",
-  "installCommand": "npm ci",
-  "devCommand": "npm run dev",
+  "buildCommand": "npx prisma generate && pnpm run build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "devCommand": "pnpm run dev",
   "regions": ["bom1"],
   "functions": {
     "app/api/**/*.ts": {

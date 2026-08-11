@@ -30,8 +30,8 @@ services:
     branch: main
 
     # Build settings
-    buildCommand: npm ci && npx prisma generate && npm run build
-    startCommand: npm run start
+    buildCommand: pnpm install --frozen-lockfile && npx prisma generate && pnpm run build
+    startCommand: pnpm run start
 
     # Health check
     healthCheckPath: /api/health
@@ -96,8 +96,8 @@ services:
     plan: free
     branch: main
 
-    buildCommand: npm ci && npx prisma generate
-    startCommand: npm run workers
+    buildCommand: pnpm install --frozen-lockfile && npx prisma generate
+    startCommand: pnpm run workers
 
     envVars:
       # Database
