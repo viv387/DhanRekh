@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/ui/AppShell";
 import { useToast } from "@/components/ui/Toast";
@@ -105,6 +105,17 @@ export default function TransactionsPage() {
 
   const currencySymbol = wallet?.currency ?? "USD";
 
+  // Dynamic Validation checks for form commit buttons
+  const isDepositValid = Boolean(
+    depositAmount && parseFloat(depositAmount) > 0 && depositDescription.trim().length > 0
+  );
+  const isWithdrawValid = Boolean(
+    withdrawAmount && parseFloat(withdrawAmount) > 0 && withdrawDescription.trim().length > 0
+  );
+  const isTransferValid = Boolean(
+    transferAmount && parseFloat(transferAmount) > 0 && receiverAccountNumber.trim().length > 0
+  );
+
   async function loadWallet() {
     try {
       const res = await fetch("/api/wallet", { credentials: "include" });
@@ -152,7 +163,6 @@ export default function TransactionsPage() {
       toast({
         title: "Error",
         description: err instanceof Error ? err.message : "Failed to load transactions",
-
       });
     } finally {
       setLoading(false);
@@ -230,7 +240,6 @@ export default function TransactionsPage() {
       toast({
         title: "Transaction Failed",
         description: err instanceof Error ? err.message : "An unexpected error occurred",
-
       });
     } finally {
       setActionLoading(false);
@@ -254,7 +263,8 @@ export default function TransactionsPage() {
 
         {/* Action Forms Section */}
         <section className="grid gap-6 lg:grid-cols-3">
-          {/* Deposit Form */}
+          
+          {/* 1. Deposit Form */}
           <div className="glass-card p-6 animate-fade-in-up delay-100 flex flex-col group relative overflow-hidden">
             <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
               <IconArrowDown size={80} className="text-cyan-400" />
@@ -270,16 +280,17 @@ export default function TransactionsPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                if (!isDepositValid) return;
                 executeTransaction("/api/transaction/deposit", { amount: Number(depositAmount), description: depositDescription }, "Deposit completed successfully!");
               }}
               className="mt-auto space-y-4 relative z-10"
             >
               <div>
                 <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">Amount</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-slate-400 sm:text-sm">{currencySymbol}</span>
-                  </div>
+                <div className="flex rounded-xl border border-white/10 bg-slate-950/80 focus-within:border-cyan-400 transition overflow-hidden">
+                  <span className="flex items-center justify-center bg-white/[0.04] px-3 font-mono text-xs font-bold text-slate-300 border-r border-white/10 select-none">
+                    {currencySymbol}
+                  </span>
                   <input
                     type="number"
                     step="0.01"
@@ -287,36 +298,43 @@ export default function TransactionsPage() {
                     placeholder="100.00"
                     value={depositAmount}
                     onChange={(e) => setDepositAmount(e.target.value)}
-                    className="input-field pl-12"
+                    className="w-full bg-transparent px-3 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none"
                   />
                 </div>
               </div>
+
               <div>
                 <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">Description</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <IconFileText className="h-4 w-4 text-slate-500" />
-                  </div>
+                <div className="flex rounded-xl border border-white/10 bg-slate-950/80 focus-within:border-cyan-400 transition overflow-hidden">
+                  <span className="flex items-center justify-center bg-white/[0.04] px-3 text-slate-400 border-r border-white/10 select-none">
+                    <IconFileText className="h-4 w-4" />
+                  </span>
                   <input
                     type="text"
+                    required
                     placeholder="Salary deposit"
                     value={depositDescription}
                     onChange={(e) => setDepositDescription(e.target.value)}
-                    className="input-field pl-10"
+                    className="w-full bg-transparent px-3 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none"
                   />
                 </div>
               </div>
+
               <button
                 type="submit"
-                disabled={actionLoading}
-                className="btn-primary w-full mt-2"
+                disabled={!isDepositValid || actionLoading}
+                className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all duration-200 mt-2 ${
+                  isDepositValid && !actionLoading
+                    ? "bg-white text-slate-950 hover:bg-slate-200 shadow-xl shadow-white/10 cursor-pointer"
+                    : "bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed"
+                }`}
               >
-                Deposit Funds
+                {actionLoading ? "Executing Deposit..." : "Deposit Funds"}
               </button>
             </form>
           </div>
 
-          {/* Withdraw Form */}
+          {/* 2. Withdraw Form */}
           <div className="glass-card p-6 animate-fade-in-up delay-200 flex flex-col group relative overflow-hidden">
             <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
               <IconArrowUp size={80} className="text-purple-400" />
@@ -332,16 +350,17 @@ export default function TransactionsPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                if (!isWithdrawValid) return;
                 executeTransaction("/api/transaction/withdraw", { amount: Number(withdrawAmount), description: withdrawDescription }, "Withdrawal completed successfully!");
               }}
               className="mt-auto space-y-4 relative z-10"
             >
               <div>
                 <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">Amount</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-slate-400 sm:text-sm">{currencySymbol}</span>
-                  </div>
+                <div className="flex rounded-xl border border-white/10 bg-slate-950/80 focus-within:border-purple-400 transition overflow-hidden">
+                  <span className="flex items-center justify-center bg-white/[0.04] px-3 font-mono text-xs font-bold text-slate-300 border-r border-white/10 select-none">
+                    {currencySymbol}
+                  </span>
                   <input
                     type="number"
                     step="0.01"
@@ -349,36 +368,43 @@ export default function TransactionsPage() {
                     placeholder="50.00"
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
-                    className="input-field pl-12 focus:border-purple-500/50 focus:ring-purple-500/20"
+                    className="w-full bg-transparent px-3 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none"
                   />
                 </div>
               </div>
+
               <div>
                 <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">Description</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <IconFileText className="h-4 w-4 text-slate-500" />
-                  </div>
+                <div className="flex rounded-xl border border-white/10 bg-slate-950/80 focus-within:border-purple-400 transition overflow-hidden">
+                  <span className="flex items-center justify-center bg-white/[0.04] px-3 text-slate-400 border-r border-white/10 select-none">
+                    <IconFileText className="h-4 w-4" />
+                  </span>
                   <input
                     type="text"
+                    required
                     placeholder="ATM withdrawal"
                     value={withdrawDescription}
                     onChange={(e) => setWithdrawDescription(e.target.value)}
-                    className="input-field pl-10 focus:border-purple-500/50 focus:ring-purple-500/20"
+                    className="w-full bg-transparent px-3 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none"
                   />
                 </div>
               </div>
+
               <button
                 type="submit"
-                disabled={actionLoading}
-                className="btn-purple w-full mt-2"
+                disabled={!isWithdrawValid || actionLoading}
+                className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all duration-200 mt-2 ${
+                  isWithdrawValid && !actionLoading
+                    ? "bg-white text-slate-950 hover:bg-slate-200 shadow-xl shadow-white/10 cursor-pointer"
+                    : "bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed"
+                }`}
               >
-                Withdraw Funds
+                {actionLoading ? "Executing Withdrawal..." : "Withdraw Funds"}
               </button>
             </form>
           </div>
 
-          {/* Transfer Form */}
+          {/* 3. Transfer Form */}
           <div className="glass-card p-6 animate-fade-in-up delay-300 flex flex-col group relative overflow-hidden">
             <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
               <IconArrowRight size={80} className="text-emerald-400" />
@@ -394,6 +420,7 @@ export default function TransactionsPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                if (!isTransferValid) return;
                 executeTransaction(
                   "/api/transaction/transfer",
                   { amount: Number(transferAmount), receiverAccountNumber, description: transferDescription },
@@ -404,22 +431,25 @@ export default function TransactionsPage() {
             >
               <div>
                 <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">Receiver Account #</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="ACC-XXXXXX"
-                  value={receiverAccountNumber}
-                  onChange={(e) => setReceiverAccountNumber(e.target.value)}
-                  className="input-field focus:border-emerald-500/50 focus:ring-emerald-500/20"
-                />
+                <div className="flex rounded-xl border border-white/10 bg-slate-950/80 focus-within:border-emerald-400 transition overflow-hidden">
+                  <input
+                    type="text"
+                    required
+                    placeholder="ACC-XXXXXX"
+                    value={receiverAccountNumber}
+                    onChange={(e) => setReceiverAccountNumber(e.target.value)}
+                    className="w-full bg-transparent px-3 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none font-mono"
+                  />
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">Amount</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-slate-400 sm:text-sm">{currencySymbol}</span>
-                    </div>
+                  <div className="flex rounded-xl border border-white/10 bg-slate-950/80 focus-within:border-emerald-400 transition overflow-hidden">
+                    <span className="flex items-center justify-center bg-white/[0.04] px-2.5 font-mono text-xs font-bold text-slate-300 border-r border-white/10 select-none">
+                      {currencySymbol}
+                    </span>
                     <input
                       type="number"
                       step="0.01"
@@ -427,32 +457,35 @@ export default function TransactionsPage() {
                       placeholder="25.00"
                       value={transferAmount}
                       onChange={(e) => setTransferAmount(e.target.value)}
-                      className="input-field pl-8 focus:border-emerald-500/50 focus:ring-emerald-500/20"
+                      className="w-full bg-transparent px-2.5 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none"
                     />
                   </div>
                 </div>
+
                 <div>
                   <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">Notes</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                      <IconFileText className="h-4 w-4 text-slate-500" />
-                    </div>
+                  <div className="flex rounded-xl border border-white/10 bg-slate-950/80 focus-within:border-emerald-400 transition overflow-hidden">
                     <input
                       type="text"
                       placeholder="Optional"
                       value={transferDescription}
                       onChange={(e) => setTransferDescription(e.target.value)}
-                      className="input-field pl-8 focus:border-emerald-500/50 focus:ring-emerald-500/20"
+                      className="w-full bg-transparent px-2.5 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none"
                     />
                   </div>
                 </div>
               </div>
+
               <button
                 type="submit"
-                disabled={actionLoading}
-                className="btn-emerald w-full mt-2"
+                disabled={!isTransferValid || actionLoading}
+                className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all duration-200 mt-2 ${
+                  isTransferValid && !actionLoading
+                    ? "bg-white text-slate-950 hover:bg-slate-200 shadow-xl shadow-white/10 cursor-pointer"
+                    : "bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed"
+                }`}
               >
-                Transfer Funds
+                {actionLoading ? "Executing Transfer..." : "Transfer Funds"}
               </button>
             </form>
           </div>
