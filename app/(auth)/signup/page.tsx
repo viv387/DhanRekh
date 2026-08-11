@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -31,6 +33,7 @@ export default function SignupPage() {
         throw new Error(data.error ?? "Signup failed");
       }
 
+      await refreshUser();
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create account");

@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +31,7 @@ export default function LoginPage() {
         throw new Error(data.error ?? "Login failed");
       }
 
+      await refreshUser();
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign in");
