@@ -12,6 +12,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -25,7 +26,7 @@ export default function SignupPage() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, phone, password }),
+        body: JSON.stringify({ username, email, phone, password, accountNumber }),
       });
 
       const data = await res.json();
@@ -53,6 +54,11 @@ export default function SignupPage() {
 
   const strength = getPasswordStrength(password);
 
+  // Account number validation (client-side preview)
+  const accNumClean = accountNumber.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const accNumValid = accNumClean.length >= 4 && accNumClean.length <= 20;
+  const accNumDirty = accountNumber.length > 0;
+
   return (
     <main className="relative flex min-h-screen items-center justify-center bg-[#050816] px-6 text-white py-12 overflow-hidden">
       <div className="bg-mesh absolute inset-0 z-0"></div>
@@ -69,7 +75,7 @@ export default function SignupPage() {
             </div>
             <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">DhanRekh Auth</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">Create Wallet Account</h1>
-            <p className="mt-2 text-sm text-slate-400">Get your unique digital account number</p>
+            <p className="mt-2 text-sm text-slate-400">Choose your unique account number to receive transfers</p>
           </div>
 
           {error && (
@@ -113,6 +119,50 @@ export default function SignupPage() {
                 placeholder="+1234567890"
                 className="input-field w-full"
               />
+            </div>
+
+            {/* Account Number — the star of the show */}
+            <div>
+              <label className="mb-1 flex items-center gap-2 text-xs text-slate-300">
+                <span>Account Number</span>
+                <span className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-[10px] font-semibold text-cyan-300 border border-cyan-500/20">
+                  Used for transfers
+                </span>
+              </label>
+              <div className={`flex rounded-xl border transition-all overflow-hidden ${
+                accNumDirty
+                  ? accNumValid
+                    ? "border-emerald-400/60 bg-emerald-950/20"
+                    : "border-rose-400/50 bg-rose-950/20"
+                  : "border-white/10 bg-slate-950/80"
+              }`}>
+                <span className="flex items-center justify-center bg-white/[0.04] px-3 font-mono text-xs font-bold text-cyan-300 border-r border-white/10 select-none">
+                  ACC-
+                </span>
+                <input
+                  type="text"
+                  required
+                  minLength={4}
+                  maxLength={20}
+                  value={accountNumber}
+                  onChange={(e) => {
+                    // Only allow alphanumeric input
+                    const val = e.target.value.replace(/[^a-zA-Z0-9]/g, "");
+                    setAccountNumber(val);
+                  }}
+                  placeholder="YOURNAME2025"
+                  className="w-full bg-transparent px-3 py-2.5 text-sm font-mono text-white placeholder:text-slate-500 outline-none uppercase"
+                  style={{ textTransform: "uppercase" }}
+                />
+                {accNumDirty && (
+                  <span className={`flex items-center justify-center pr-3 text-lg ${accNumValid ? "text-emerald-400" : "text-rose-400"}`}>
+                    {accNumValid ? "✓" : "✗"}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1.5 text-[10px] text-slate-500">
+                4–20 letters/digits, no spaces (e.g. <span className="font-mono text-slate-400">VIVEK2025</span> or <span className="font-mono text-slate-400">JOHN123</span>). Share this with others to receive money.
+              </p>
             </div>
 
             <div>

@@ -80,6 +80,7 @@ export const authService = {
 			userRepository.findByEmail(input.email),
 			userRepository.findByUsername(input.username),
 			userRepository.findByPhone(input.phone),
+			prisma.wallet.findUnique({ where: { accountNumber: input.accountNumber } }),
 		]);
 
 		if (existing[0]) {
@@ -94,8 +95,11 @@ export const authService = {
 			throw new HttpError(409, "Phone already exists");
 		}
 
+		if (existing[3]) {
+			throw new HttpError(409, "Account number already taken. Please choose a different one.");
+		}
+
 		const passwordHash = await hashPassword(input.password);
-		const accountNumber = await createUniqueAccountNumber();
 
 		const result = await prisma.$transaction(async (tx: any) => {
 			const user = await tx.user.create({
@@ -110,7 +114,7 @@ export const authService = {
 			const wallet = await tx.wallet.create({
 				data: {
 					userId: user.id,
-					accountNumber,
+					accountNumber: input.accountNumber,
 					balance: new Prisma.Decimal(0),
 				},
 			});
