@@ -10,6 +10,7 @@
     "db:migrate": "npx prisma migrate deploy",
     "db:push": "npx prisma db push",
     "db:generate": "npx prisma generate",
+    "db:seed": "npx tsx backend/prisma/seed.ts",
     "postinstall": "npx prisma generate",
     "test": "npx tsx --test tests/unit/auth.service.test.ts tests/unit/wallet.service.test.ts tests/unit/notification.service.test.ts tests/unit/phase4.test.ts tests/integration/api.integration.test.ts tests/concurrency/concurrency.test.ts",
     "test:unit": "npx tsx --test tests/unit/auth.service.test.ts tests/unit/wallet.service.test.ts tests/unit/notification.service.test.ts tests/unit/phase4.test.ts",
