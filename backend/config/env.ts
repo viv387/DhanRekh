@@ -6,9 +6,15 @@ const toNumber = (value: string | undefined, fallback: number) => {
 function requireEnv(key: string, fallback: string): string {
 	const value = process.env[key];
 	if (value) return value;
-	if (process.env.NODE_ENV === "production") {
+
+	// During `next build` (NEXT_PHASE=phase-production-build) environment secrets
+	// are not available — they are injected at runtime only. Skip the hard throw
+	// so the build succeeds; the error will surface at first real request if missing.
+	const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+	if (process.env.NODE_ENV === "production" && !isBuildPhase) {
 		throw new Error(`Missing required environment variable: ${key}`);
 	}
+
 	return fallback;
 }
 

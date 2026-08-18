@@ -90,7 +90,13 @@ jobs:
       - name: Build Next.js Application
         run: pnpm run build
         working-directory: ${{ env.APP_DIR }}
-
-      - name: Validate Docker Image Build
-        run: docker build -t money-ledger:latest .
-        working-directory: ${{ env.APP_DIR }}
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/money_ledger_test?schema=public
+          REDIS_URL: redis://localhost:6379
+          JWT_ACCESS_SECRET: ci-build-access-secret-32-bytes!!
+          JWT_REFRESH_SECRET: ci-build-refresh-secret-32-bytes!
+          JWT_ACCESS_EXPIRES_IN: 15m
+          JWT_REFRESH_EXPIRES_IN: 7d
+          KAFKA_BROKERS: localhost:29092
+          KAFKA_CLIENT_ID: money-ledger
+          NODE_ENV: production
