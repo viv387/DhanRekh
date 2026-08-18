@@ -54,7 +54,12 @@ const navItems = [
   },
 ];
 
-export default function Sidebar() {
+type SidebarProps = {
+  unreadCount?: number;
+  onBellClick?: () => void;
+};
+
+export default function Sidebar({ unreadCount = 0, onBellClick }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -62,29 +67,50 @@ export default function Sidebar() {
   const sidebarContent = (
     <div className="flex h-full flex-col">
       {/* Brand Header */}
-      <div className="px-6 pt-6 pb-6 border-b border-white/[0.06]">
-        <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 via-emerald-400 to-indigo-500 p-[1px] shadow-lg shadow-cyan-950/40">
-            <div className="flex h-full w-full items-center justify-center rounded-[11px] bg-[#0c0d12]">
-              <span className="text-sm font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-emerald-300">
-                DR
-              </span>
+      <div className="px-5 pt-5 pb-5 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-3 group">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 via-emerald-400 to-indigo-500 p-[1px] shadow-lg shadow-cyan-950/40">
+              <div className="flex h-full w-full items-center justify-center rounded-[11px] bg-[#0c0d12]">
+                <span className="text-sm font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-emerald-300">
+                  DR
+                </span>
+              </div>
             </div>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-bold tracking-tight text-white group-hover:text-cyan-300 transition-colors">
-                DhanRekh
-              </span>
-              <span className="rounded bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-400 uppercase tracking-widest border border-cyan-400/20">
-                PRO
-              </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-bold tracking-tight text-white group-hover:text-cyan-300 transition-colors">
+                  DhanRekh
+                </span>
+                <span className="rounded bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-400 uppercase tracking-widest border border-cyan-400/20">
+                  PRO
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 tracking-wider uppercase font-mono">
+                Immutable Ledger
+              </p>
             </div>
-            <p className="text-[10px] text-slate-400 tracking-wider uppercase font-mono">
-              Immutable Ledger
-            </p>
-          </div>
-        </Link>
+          </Link>
+
+          {/* Notification Bell */}
+          <button
+            onClick={onBellClick}
+            title={unreadCount > 0 ? `${unreadCount} new notifications` : "Notifications"}
+            className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-slate-400 transition-all hover:bg-cyan-500/10 hover:text-cyan-400 hover:border-cyan-500/20"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            {unreadCount > 0 && (
+              <span
+                className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-lg shadow-rose-900/50 animate-pulse"
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Navigation Links */}
