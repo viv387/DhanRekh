@@ -54,6 +54,18 @@ const navItems = [
   },
 ];
 
+const adminItems = [
+  {
+    label: "Compliance",
+    href: "/admin",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    ),
+  },
+];
+
 type SidebarProps = {
   unreadCount?: number;
   onBellClick?: () => void;
@@ -137,6 +149,37 @@ export default function Sidebar({ unreadCount = 0, onBellClick }: SidebarProps) 
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
                   )}
                   <span className={`${isActive ? "text-cyan-400" : "text-slate-400 group-hover:text-slate-300"} transition-colors`}>
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div>
+          <p className="px-3 text-[10px] uppercase font-bold tracking-[0.25em] text-slate-400 mb-2">
+            Admin
+          </p>
+          <nav className="space-y-1">
+            {adminItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                    isActive
+                      ? "bg-white/[0.08] text-white font-semibold shadow-sm"
+                      : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
+                  }`}
+                >
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]" />
+                  )}
+                  <span className={`${isActive ? "text-rose-400" : "text-slate-400 group-hover:text-slate-300"} transition-colors`}>
                     {item.icon}
                   </span>
                   <span>{item.label}</span>
