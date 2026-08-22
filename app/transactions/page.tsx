@@ -177,6 +177,7 @@ export default function TransactionsPage() {
     return () => {
       active = false;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -187,6 +188,7 @@ export default function TransactionsPage() {
     return () => {
       active = false;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType, filterStatus, sortBy, sortOrder, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {

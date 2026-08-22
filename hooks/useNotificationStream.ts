@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 export type StreamNotification = {
 	id: string;
@@ -23,88 +23,72 @@ type Options = {
  * Opens a persistent SSE connection to /api/notifications/stream and
  * invokes `onNotification` for every new notification pushed by the server.
  *
- * - Auto-reconnects with exponential back-off (1s → 2s → 4s → max 30s)
- *   if the connection drops.
- * - Cleans up on unmount or when `enabled` becomes false.
- * - Exposes `unreadCount` which increments per incoming notification
- *   and resets to 0 when `clearUnread()` is called.
+ * Reconnects automatically with exponential back-off (1s → 2s → 4s → 30s max).
+ * Exposes `unreadCount` and `clearUnread()` to the consumer.
  */
 export function useNotificationStream({ onNotification, enabled }: Options) {
 	const [unreadCount, setUnreadCount] = useState(0);
-	const esRef = useRef<EventSource | null>(null);
 	const retryDelayRef = useRef(1000);
-	const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const mountedRef = useRef(true);
 
 	const clearUnread = useCallback(() => setUnreadCount(0), []);
 
-	const connect = useCallback(() => {
-		if (!mountedRef.current || !enabled) return;
-
-		// Clean up any existing connection
-		if (esRef.current) {
-			esRef.current.close();
-			esRef.current = null;
-		}
-
-		const es = new EventSource("/api/notifications/stream", {
-			withCredentials: true,
-		});
-
-		esRef.current = es;
-
-		es.addEventListener("connected", () => {
-			// Reset back-off on successful connection
-			retryDelayRef.current = 1000;
-		});
-
-		es.addEventListener("notification", (event: MessageEvent) => {
-			if (!mountedRef.current) return;
-			try {
-				const notification = JSON.parse(event.data) as StreamNotification;
-				setUnreadCount((c) => c + 1);
-				onNotification(notification);
-			} catch {
-				// malformed event — skip
-			}
-		});
-
-		es.onerror = () => {
-			es.close();
-			esRef.current = null;
-
-			if (!mountedRef.current || !enabled) return;
-
-			// Exponential back-off, capped at 30 s
-			const delay = retryDelayRef.current;
-			retryDelayRef.current = Math.min(delay * 2, 30_000);
-
-			retryTimerRef.current = setTimeout(() => {
-				if (mountedRef.current && enabled) connect();
-			}, delay);
-		};
-	}, [enabled, onNotification]);
-
 	useEffect(() => {
-		mountedRef.current = true;
+		if (!enabled) return;
 
-		if (enabled) {
-			connect();
+		let es: EventSource | null = null;
+		let retryTimer: ReturnType<typeof setTimeout> | null = null;
+		let cancelled = false;
+
+		function open() {
+			if (cancelled) return;
+
+			if (es) {
+				es.close();
+				es = null;
+			}
+
+			const source = new EventSource("/api/notifications/stream", {
+				withCredentials: true,
+			});
+			es = source;
+
+			source.addEventListener("connected", () => {
+				retryDelayRef.current = 1000;
+			});
+
+			source.addEventListener("notification", (event: MessageEvent) => {
+				if (cancelled) return;
+				try {
+					const notification = JSON.parse(event.data) as StreamNotification;
+					setUnreadCount((c) => c + 1);
+					onNotification(notification);
+				} catch {
+					// malformed payload — ignore
+				}
+			});
+
+			source.onerror = () => {
+				source.close();
+				es = null;
+				if (cancelled) return;
+
+				const delay = retryDelayRef.current;
+				retryDelayRef.current = Math.min(delay * 2, 30_000);
+				retryTimer = setTimeout(open, delay);
+			};
 		}
+
+		open();
 
 		return () => {
-			mountedRef.current = false;
-
-			if (retryTimerRef.current) {
-				clearTimeout(retryTimerRef.current);
-			}
-
-			if (esRef.current) {
-				esRef.current.close();
-				esRef.current = null;
+			cancelled = true;
+			if (retryTimer) clearTimeout(retryTimer);
+			if (es) {
+				es.close();
+				es = null;
 			}
 		};
-	}, [enabled, connect]);
+	}, [enabled, onNotification]);
 
 	return { unreadCount, clearUnread };
 }

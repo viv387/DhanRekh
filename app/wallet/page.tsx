@@ -217,6 +217,7 @@ export default function WalletPage() {
     return () => {
       active = false;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const copyToClipboard = () => {

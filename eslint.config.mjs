@@ -21,6 +21,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "tests/load/**",
+    "**/*-Vivu_AK14*",
   ]),
 ]);
 

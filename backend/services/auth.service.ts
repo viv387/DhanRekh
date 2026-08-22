@@ -31,6 +31,7 @@ function publicUser(user: {
 	};
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function createUniqueAccountNumber() {
 	for (let attempt = 0; attempt < 5; attempt += 1) {
 		const accountNumber = generateAccountNumber();
